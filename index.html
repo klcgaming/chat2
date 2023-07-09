@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat Website</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.1/sql.js"></script>
+  <script>
+    // Load the SQLite database file
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'texts.db', true);
+    xhr.responseType = 'arraybuffer';
+
+    xhr.onload = function (e) {
+      const uInt8Array = new Uint8Array(this.response);
+      const db = new SQL.Database(uInt8Array);
+      const tableName = 'messages';
+
+      // Function to insert a new message into the database
+      function insertMessage(user, message) {
+        const insertQuery = `INSERT INTO ${tableName} (user, message) VALUES (?, ?)`;
+        const params = [user, message];
+        db.run(insertQuery, params);
+      }
+
+      // Function to retrieve all messages from the database
+      function getMessages() {
+        const selectQuery = `SELECT * FROM ${tableName}`;
+        const result = db.exec(selectQuery);
+        if (result.length > 0) {
+          const rows = result[0].values;
+          return rows.map(row => ({ id: row[0], user: row[1], message: row[2] }));
+        } else {
+          return [];
+        }
+      }
+
+      // Function to display messages in the chat window
+      function displayMessages() {
+        const chatWindow = document.getElementById('chat-window');
+        chatWindow.innerHTML = '';
+        const messages = getMessages();
+        messages.forEach(message => {
+          const messageElement = document.createElement('div');
+          messageElement.innerHTML = `<strong>${message.user}:</strong> ${message.message}`;
+          chatWindow.appendChild(messageElement);
+        });
+      }
+
+      // Event listener for the submit button
+      document.getElementById('submit-button').addEventListener('click', function(event) {
+        event.preventDefault();
+        const user = document.getElementById('user-input').value;
+        const message = document.getElementById('message-input').value;
+        insertMessage(user, message);
+        displayMessages();
+        document.getElementById('message-input').value = '';
+      });
+
+      // Display messages when the page loads
+      displayMessages();
+    };
+
+    xhr.send();
+  </script>
+</head>
+<body>
+  <div id="chat-window"></div>
+  <form>
+    <input type="text" id="user-input" placeholder="Your Name" required><br>
+    <input type="text" id="message-input" placeholder="Type your message" required><br>
+    <button id="submit-button">Send</button>
+  </form>
+</body>
+</html>
